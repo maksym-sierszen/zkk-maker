@@ -1,27 +1,23 @@
+const express = require("express")
+const { googleSheetsInstance } = require("./config/auth")
+const config = require("./config/config.json")
+const app = express()
 
+app.get("/", async (req, res) => {
+	try {
+		const googleSheets = await googleSheetsInstance()
 
-const { authorize } = require("./services/google_client.js")
-const { google } = require("googleapis")
-/**
- * Prints the names and majors of students in a sample spreadsheet:
- * @see https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
- * @param {google.auth.OAuth2} auth The authenticated Google OAuth client.
- */
-async function listMajors(auth) {
-	const sheets = google.sheets({ version: "v4", auth })
-	const res = await sheets.spreadsheets.values.get({
-		spreadsheetId: "1MWuUVKAc9j4c0pC1U9ixtFTr3EcXD5zQgmyoOzmiMKo",
-		range: "Class Data!A2:E",
-	})
-	const rows = res.data.values
-	if (!rows || rows.length === 0) {
-		console.log("No data found.")
-		return
+		// read rows from spreadsheet
+		const getColumns = await googleSheets.spreadsheets.values.get({
+			spreadsheetId: config.SPREADSHEET_ID,
+			range: "Arkusz1!A9:M18",
+			majorDimension: "COLUMNS",
+		})
+		res.send(getColumns.data)
+	} catch (error) {
+		console.error("Error fetching data from Google Sheets", error)
+		res.status(500).send("An error occurred while fetching data.")
 	}
-	console.log("Name, Major:")
-	rows.forEach((row) => {
-		// Print columns A and E, which correspond to indices 0 and 4.
-		console.log(`${row[0]}, ${row[4]}`)
-	})
-}
-authorize().then(listMajors()).catch(console.error)
+})
+
+app.listen(1337, (req, res) => console.log("running on 1337"))
